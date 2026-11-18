@@ -46,7 +46,8 @@ export async function call(action, payload = {}) {
     // La clé n'est jamais envoyée : chaque requête est signée (HMAC) avec l'heure et un numéro à usage unique.
     const ts = Date.now();
     const nonce = [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, '0')).join('');
-    const msg = JSON.stringify({ ...payload, action });
+    // Texte 100 % ASCII (accents échappés en \uXXXX) : la signature est identique des deux côtés.
+    const msg = JSON.stringify({ ...payload, action }).replace(/[\u0080-\uffff]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
     const sig = await hmacHex(conn.key, `${ts}.${nonce}.${msg}`);
     res = await fetch(conn.url, { method: 'POST', body: JSON.stringify({ ts, nonce, msg, sig }), redirect: 'follow' });
   } catch {
